@@ -16,7 +16,7 @@
 Adafruit_APDS9960 apds;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   if(!apds.begin()){
     Serial.println("failed to initialize device! Please check your wiring.");
