@@ -1,0 +1,162 @@
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include <Wire.h>
+#include "OLED.h"
+OLED display(4,5);
+const char* ssid = "KT_GiGA_2G_Wave2_87EA"; // 와이파이 이름
+const char* password = "bh63cb0545"; // 와이파이 비밀번호
+#define mqtt_server "tailor.cloudmqtt.com" // MQTT server 주소
+#define mqtt_port 16417 // port 번호
+#define cds_topic "cds" // topic (자유롭게 작성}
+#define ultsonic_topic "ultsonic" // topic (자유롭게 작성}
+#define enc_topic "encoder" // topic (자유롭게 작성}
+#define mqtt_user "nsiilwwe" // username
+#define mqtt_password "tAboZHax9-Ue" // password
+#define LED_R   12
+#define LED_G   13
+#define LED_B   14
+int pinLED = 2;
+int pinSwitch = 0;
+int pinState = HIGH;
+int encoder0PinA = 12;
+int encoder0PinB = 13;
+int encoder0Pin_RST = 2;
+int encoder0Pos = 0;
+int encoder0PinALast = LOW;
+int n = LOW;
+int Rst = LOW;
+char buf_cds[5];
+char buf_ultsonic[5];
+char buf[5];
+char enc_value[5];
+char buf_lcd1[30];
+char buf_lcd2[30];
+unsigned int cnt=0;
+int ult_cnt=1;
+int loop_cnt = 0;
+int ult_cnt_tmp, ult_cnt_tmp1, ult_flag;
+WiFiClient espClient;
+PubSubClient client(espClient);
+void setup() {
+  Serial.begin(9600);
+WiFi.begin(ssid, password);
+while (WiFi.status() != WL_CONNECTED) delay(500);
+pinMode(pinLED, OUTPUT);
+pinMode(pinSwitch, INPUT_PULLUP);
+pinMode(encoder0PinA, INPUT);
+  pinMode(encoder0PinB, INPUT);
+  pinMode(encoder0Pin_RST, INPUT);
+pinMode(LED_R, OUTPUT);
+pinMode(LED_G, OUTPUT);
+pinMode(LED_B, OUTPUT);
+pinState = digitalRead(pinSwitch);
+digitalWrite(pinLED, pinState);
+client.setServer(mqtt_server, mqtt_port);
+client.setCallback(callback);
+display.begin();
+}
+void loop() {
+sprintf(buf_lcd1, "CDS   ");
+display.print(buf_lcd1, 0, 0); 
+sprintf(buf_lcd2, "Ultrasonic");
+display.print(buf_lcd2, 2, 0); 
+n = digitalRead(encoder0PinA);
+       if((encoder0PinALast == LOW) && (n == HIGH)) {
+        if(digitalRead(encoder0PinB) == LOW)
+        { encoder0Pos--; } else { encoder0Pos++; }
+        }
+        encoder0PinALast = n;
+           Rst = digitalRead(encoder0Pin_RST);
+       if(Rst == 0) {
+        encoder0Pos  = 0;
+        }
+        if (encoder0Pos<0){
+          sprintf(enc_value, "%d", -encoder0Pos);
+        }else sprintf(enc_value, "%d", encoder0Pos);
+        
+if (!client.connected()) {
+client.connect("ESP8266Client", mqtt_user, mqtt_password);
+client.subscribe(cds_topic);
+client.subscribe(ultsonic_topic);
+}
+client.publish(enc_topic, enc_value);
+delay(10);
+loop_cnt++;
+if (loop_cnt >= 3) {
+  loop_cnt = 0;
+  Serial.print("encoder : ");
+  Serial.println(enc_value);
+}
+client.loop();
+}
+void callback(char* topic, byte* payload, unsigned int length) {
+String Msg = "";
+int i=0;
+int ult_value, cds_value;
+while (i<length) Msg += (char)payload[i++];
+if (Msg == "Push") {
+digitalWrite(pinLED, !digitalRead(pinLED));
+client.publish(cds_topic, (digitalRead(pinLED) ? "LED OFF"
+: "LED ON"));
+return;
+}
+if(!strcmp(cds_topic, topic)){
+  Msg.toCharArray(buf_cds, 5);
+//  Serial.print("cds : ");
+//  Serial.println(buf_cds);
+  cds_value = atoi(buf_cds);
+} else if (!strcmp(ultsonic_topic, topic)){
+  Msg.toCharArray(buf_ultsonic, 5);
+  Serial.print("ultsonic : ");
+  Serial.println(buf_ultsonic);
+}
+
+ult_value = atoi(buf_ultsonic);
+
+if(ult_value <= 10) {
+  if(ult_cnt<1000) ult_cnt_tmp1+=3;
+  ult_cnt = ult_cnt_tmp1;
+  ult_cnt_tmp = 100;
+} else {
+  if(ult_cnt>1) ult_cnt_tmp -= 3;
+  ult_cnt = ult_cnt_tmp;
+  ult_cnt_tmp1 = 100;
+}
+
+sprintf(buf, "%d", ult_cnt);
+Serial.print("ult cnt : ");
+Serial.println(buf);
+if(ult_cnt >= 200) {
+  ult_flag = 2;
+  digitalWrite(LED_R, LOW);
+  digitalWrite(LED_G, HIGH);
+  digitalWrite(LED_B, LOW);
+}
+else if (ult_cnt > 1) {
+  ult_flag = 1;
+  digitalWrite(LED_R, LOW);
+  digitalWrite(LED_G, LOW);
+  digitalWrite(LED_B, HIGH);
+}
+else if (ult_cnt == 1) {
+  digitalWrite(LED_R, HIGH);
+  digitalWrite(LED_G, LOW);
+  digitalWrite(LED_B, LOW);
+}
+
+if (!digitalRead(pinSwitch)) {
+  cnt++;
+} else cnt = 0;
+
+if ((cnt >= 1) & (cnt <=100))
+{
+  Serial.println(buf_cds);
+  display.print("       ", 1, 0);  
+  delay(1);
+  display.print(buf_cds, 1, 0);
+  Serial.println(buf_ultsonic);
+  display.print("       ", 3, 0);  
+  delay(1);
+  display.print(buf_ultsonic, 3, 0);
+}
+}
