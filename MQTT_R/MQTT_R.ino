@@ -4,15 +4,15 @@ const char* ssid = "KT_GiGA_2G_Wave2_87EA"; // 와이파이 이름
 const char* password = "bh63cb0545"; // 와이파이 비밀번호
 #define mqtt_server "tailor.cloudmqtt.com" // MQTT server 주소
 #define mqtt_port 16417 // port 번호
-#define cds_topic "cds" // topic (자유롭게 작성}
-#define ultsonic_topic "ultsonic" // topic (자유롭게 작성}
-#define enc_topic "encoder" // topic (자유롭게 작성}
+#define cds_topic "cds" // topic (cds sensor)
+#define ultsonic_topic "ultsonic" // topic (ultrasonic sensor)
+#define enc_topic "encoder" // topic (encoder)
 #define mqtt_user "nsiilwwe" // username
 #define mqtt_password "tAboZHax9-Ue" // password
 #define trigPin 13                   // trigPin을 13으로 설정합니다.
 #define echoPin 12                // echoPin을 12로 설정합니다.
-int pinLED = 2;
-int cds;
+int pinLED = 2;                   // LED pin => 2
+int cds;                          // cds sensor
 int loop_cnt=0;
 unsigned long enc_value;
 char buf[5];
