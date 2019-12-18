@@ -7,34 +7,34 @@ const char* ssid = "KT_GiGA_2G_Wave2_87EA"; // 와이파이 이름
 const char* password = "bh63cb0545"; // 와이파이 비밀번호
 #define mqtt_server "tailor.cloudmqtt.com" // MQTT server 주소
 #define mqtt_port 16417 // port 번호
-#define cds_topic "cds" // topic (자유롭게 작성}
-#define ultsonic_topic "ultsonic" // topic (자유롭게 작성}
-#define enc_topic "encoder" // topic (자유롭게 작성}
+#define cds_topic "cds" // topic (조도 센서)
+#define ultsonic_topic "ultsonic" // topic (초음파 센서)
+#define enc_topic "encoder" // topic (엔코더)
 #define mqtt_user "nsiilwwe" // username
 #define mqtt_password "tAboZHax9-Ue" // password
-#define LED_R   12
-#define LED_G   13
-#define LED_B   14
-int pinLED = 2;
-int pinSwitch = 0;
+#define LED_R   12          // RGB LED에서 RED 핀 => 12
+#define LED_G   13          // RGB LED에서 GREEN 핀 => 13
+#define LED_B   14          // RGB LED에서 BLUE 핀 => 14
+int pinLED = 2;             // LED pin => 2
+int pinSwitch = 0;          // Switch pin => 0
 int pinState = HIGH;
-int encoder0PinA = 12;
+int encoder0PinA = 12;      // 엔코더 핀설정, 변수 설정
 int encoder0PinB = 13;
 int encoder0Pin_RST = 2;
 int encoder0Pos = 0;
 int encoder0PinALast = LOW;
 int n = LOW;
 int Rst = LOW;
-char buf_cds[5];
+char buf_cds[5];          // 각종 센서 값을 저장할 캐릭터배열 변수 선언
 char buf_ultsonic[5];
 char buf[5];
 char enc_value[5];
-char buf_lcd1[30];
+char buf_lcd1[30];        // OLED에 센서값을 표시할 캐릭터배열 변수 선언
 char buf_lcd2[30];
-unsigned int cnt=0;
-int ult_cnt=1;
+unsigned int cnt=0;       // 스위치가 눌린 시간을 저장하는 카운터변수
+int ult_cnt=1;            // Subscribe한 초음파 센서 값과 지속시간에 따라 RGB LED를 다르게 해주기 위한 카운터변수
 int loop_cnt = 0;
-int ult_cnt_tmp, ult_cnt_tmp1, ult_flag;
+int ult_cnt_tmp, ult_cnt_tmp1, ult_flag;   // Subscribe한 초음파 센서 값과 지속시간에 따라 RGB LED를 다르게 해주기 위한 변수
 WiFiClient espClient;
 PubSubClient client(espClient);
 void setup() {
@@ -50,7 +50,6 @@ pinMode(LED_R, OUTPUT);
 pinMode(LED_G, OUTPUT);
 pinMode(LED_B, OUTPUT);
 pinState = digitalRead(pinSwitch);
-digitalWrite(pinLED, pinState);
 client.setServer(mqtt_server, mqtt_port);
 client.setCallback(callback);
 display.begin();
@@ -60,6 +59,7 @@ sprintf(buf_lcd1, "CDS   ");
 display.print(buf_lcd1, 0, 0); 
 sprintf(buf_lcd2, "Ultrasonic");
 display.print(buf_lcd2, 2, 0); 
+// 엔코더 값을 처리하는 시퀀스
 n = digitalRead(encoder0PinA);
        if((encoder0PinALast == LOW) && (n == HIGH)) {
         if(digitalRead(encoder0PinB) == LOW)
@@ -72,20 +72,20 @@ n = digitalRead(encoder0PinA);
         }
         if (encoder0Pos<0){
           sprintf(enc_value, "%d", -encoder0Pos);
-        }else sprintf(enc_value, "%d", encoder0Pos);
+        }else sprintf(enc_value, "%d", encoder0Pos);    // 엔코더 정수형을 캐릭터배열로 변환
         
 if (!client.connected()) {
 client.connect("ESP8266Client", mqtt_user, mqtt_password);
 client.subscribe(cds_topic);
 client.subscribe(ultsonic_topic);
 }
-client.publish(enc_topic, enc_value);
+client.publish(enc_topic, enc_value);     // 엔코더 값을 Publish
 delay(10);
 loop_cnt++;
 if (loop_cnt >= 3) {
   loop_cnt = 0;
   Serial.print("encoder : ");
-  Serial.println(enc_value);
+  Serial.println(enc_value);              // 엔코더값을 시리얼에 표시
 }
 client.loop();
 }
