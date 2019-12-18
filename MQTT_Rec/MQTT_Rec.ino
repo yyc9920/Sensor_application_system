@@ -85,7 +85,7 @@ loop_cnt++;
 if (loop_cnt >= 3) {
   loop_cnt = 0;
   Serial.print("encoder : ");
-  Serial.println(enc_value);              // 엔코더값을 시리얼에 표시
+  Serial.println(enc_value);              // 엔코더값을 시리얼에 
 }
 client.loop();
 }
@@ -94,51 +94,45 @@ String Msg = "";
 int i=0;
 int ult_value, cds_value;
 while (i<length) Msg += (char)payload[i++];
-if (Msg == "Push") {
-digitalWrite(pinLED, !digitalRead(pinLED));
-client.publish(cds_topic, (digitalRead(pinLED) ? "LED OFF"
-: "LED ON"));
-return;
-}
+
 if(!strcmp(cds_topic, topic)){
-  Msg.toCharArray(buf_cds, 5);
+  Msg.toCharArray(buf_cds, 5);      // 토픽이 cds일 경우 메세지를 캐릭터배열로 변환
 //  Serial.print("cds : ");
 //  Serial.println(buf_cds);
-  cds_value = atoi(buf_cds);
 } else if (!strcmp(ultsonic_topic, topic)){
-  Msg.toCharArray(buf_ultsonic, 5);
+  Msg.toCharArray(buf_ultsonic, 5); // 토픽이 ultsonic일 경우 메세지를 캐릭터배열로 변환
   Serial.print("ultsonic : ");
   Serial.println(buf_ultsonic);
 }
 
-ult_value = atoi(buf_ultsonic);
+ult_value = atoi(buf_ultsonic);     // 초음파센서 캐릭터배열을 정수형으로 변환하여 ult_value에 저장.
 
-if(ult_value <= 10) {
-  if(ult_cnt<1000) ult_cnt_tmp1+=3;
+if(ult_value <= 10) {                   // 애완동물이 집 안에 들어왔을 때
+  if(ult_cnt<1000) ult_cnt_tmp1+=3;     // 집 안에 들어온 시간을 카운트
   ult_cnt = ult_cnt_tmp1;
-  ult_cnt_tmp = 100;
+  ult_cnt_tmp = 100;                    // 집 안에 있다가 밖에 나가면 카운터변수를 초기화
 } else {
-  if(ult_cnt>1) ult_cnt_tmp -= 3;
+  if(ult_cnt>1) ult_cnt_tmp -= 3;       // 집 밖으로 나간 시간을 카운트
   ult_cnt = ult_cnt_tmp;
-  ult_cnt_tmp1 = 100;
+  ult_cnt_tmp1 = 100;                   // 집 밖에서 안으로 들어오면 카운터변수를 초기화
 }
 
 sprintf(buf, "%d", ult_cnt);
 Serial.print("ult cnt : ");
-Serial.println(buf);
-if(ult_cnt >= 200) {
+Serial.println(buf);                    // 카운터변수를 시리얼에 출력 
+if(ult_cnt >= 200) {                    // 집 안에 들어온 후 약 10초가 지나면 RGB LED -> G
   ult_flag = 2;
   digitalWrite(LED_R, LOW);
   digitalWrite(LED_G, HIGH);
   digitalWrite(LED_B, LOW);
 }
-else if (ult_cnt > 1) {
+else if (ult_cnt > 1) {                 // 집 안과 밖을 10초 내로 왔다갔다 할 때 RGB LED -> B
   ult_flag = 1;
   digitalWrite(LED_R, LOW);
   digitalWrite(LED_G, LOW);
   digitalWrite(LED_B, HIGH);
 }
-else if (ult_cnt == 1) {
+else if (ult_cnt == 1) {                // 집 밖으로 나간 후 약 10초가 지나면 RGB LED -> R
   digitalWrite(LED_R, HIGH);
   digitalWrite(LED_G, LOW);
   digitalWrite(LED_B, LOW);
@@ -147,8 +141,8 @@ else if (ult_cnt == 1) {
 if (!digitalRead(pinSwitch)) {
   cnt++;
 } else cnt = 0;
-
-if ((cnt >= 1) & (cnt <=100))
+// 스위치를 누르면 OLED에 각 센서값을 출력
+if (cnt >= 1)
 {
   Serial.println(buf_cds);
   display.print("       ", 1, 0);  
